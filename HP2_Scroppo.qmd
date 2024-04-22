@@ -1,0 +1,288 @@
+---
+title: "HP2_Scroppo"
+author: "Noah Scroppo"
+format: 
+  html:
+    embed-resources: true
+---
+
+### Importing Data
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+#Importing Libraries & Data
+
+library(tidyverse)
+library(kableExtra)
+library(gt)
+library(readr)
+library(dplyr)
+library(leaflet)
+online_foods <- read_csv("onlinefoods.csv")
+write_rds(online_foods, "online_foods.rds")
+
+```
+
+
+
+## Analyzing Online Food Ordering Habits and Characteristics
+
+This is a comprehensive data report and analysis covering the "Online Food Dataset" from Kaggle.com.  
+
+## Introduction and Topics to Explore
+
+The modern convenience of online food services has become a significant aspect of consumer's lifestyles, influencing dining habits and preferences across demographics. This report delves into the onlinefoods.csv dataset, which comprises data on individuals' usage and feedback regarding online food services. This dataset contains information collected from an online food ordering platform over a period of time. Through comprehensive data analysis, this report aims to unearth trends and correlations that might inform business strategies for service providers and contribute to better consumer experiences.
+
+
+Topics I will be exploring:
+
+1) Demographic Influence:
+How do age, gender, and marital status influence the feedback and usage frequency of online food services?
+Is there a noticeable difference in the way different demographic groups perceive the quality of service?
+
+2) Socioeconomic Impact:
+Does a person's occupation and income level affect their likelihood to use and positively review online food services?
+How do educational qualifications correlate with the types of feedback given?
+
+3) Geographical Trends:
+Are there specific areas where feedback tends to be more positive or negative?
+
+4) Family Dynamics:
+Does family size influence the frequency of using online food services?
+How does the family structure relate to overall satisfaction with these services?
+
+### Cleaning The Data
+```{r, results= 'hide'}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+online_foods <- read_rds("online_foods.rds")
+
+#Dropping unnamed column 
+online_foods_clean <- online_foods |> select(-"...13")
+
+#Rename Column for Clarity
+online_foods_clean <- online_foods_clean |> rename(
+  "Delivered" = "Output"
+)
+
+#Add a new row unique identifier
+online_foods_clean <- online_foods_clean |> mutate(id = row_number()) |> 
+  select(id, everything())
+#Checking Variable Typebus
+str(online_foods)
+
+
+
+
+```
+
+
+## A Data Dictionary to explain variables in the data set:
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+df_dictionary <- tibble::tribble( 
+  ~variable, ~description, 
+  "ID", "Unique Identifier",
+  "Age:",  "Age of the customer",
+"Gender:", "Gender of the customer",
+"Marital Status:", "Marital status of the customer",
+"Occupation:", "Occupation of the customer",
+"Monthly Income:", "Monthly income of the customer",
+"Educational Qualifications:", "Educational qualifications of the customer",
+"Family Size:", "Number of individuals in the customer's family",
+"Latitude:", "Latitude of the customer's location",
+"Longitude:", "Longitude of the customer's location",
+"Pin Code:", "Pin code of the customer's location",
+"Delivered:", "Current status of the order (e.g., pending, confirmed, delivered)",
+"Feedback:", "Feedback provided by the customer after receiving the order")
+
+df_dictionary |> 
+  gt() |> 
+  opt_row_striping() |> 
+  opt_stylize(style = 5)
+```
+
+```{r, include=FALSE}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+n_participants <- length((online_foods_clean$id))
+```
+
+There are `r  n_participants` participants that we have data for in this study.
+
+## Demographic Influence
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+
+age_stats <- online_foods_clean |> 
+  summarise(Max_Age = max(Age, na.rm = TRUE),
+            Min_Age = min(Age, na.rm = TRUE),
+            Mean_Age = mean(Age, na.rm = TRUE)) 
+
+
+age_stats |> gt()
+
+
+
+
+```
+
+### PUT ANALYSIS HERE
+
+```{r}
+online_foods_clean <- online_foods_clean %>%
+  mutate(Age_Category = if_else(Age > age_stats$Mean_Age, "Above Average", "Below Average"))
+
+age_feedback <- online_foods_clean %>%
+  group_by(Age_Category, Feedback) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  group_by(Age_Category) %>%
+  mutate(Total = sum(Count),  
+         Percent = (Count / Total) * 100)  # Percentage calculated within each Age_Category
+
+# Visualizing the feedback by Age Category with percentage annotations
+ggplot(age_feedback, aes(x = Age_Category, y = Count, fill = Feedback)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = sprintf("%.1f%%", Percent)), vjust = -0.5, position = position_dodge(width = 0.9)) +
+  labs(title = "Feedback by Age Category", x = "Age Category", y = "Count")
+
+
+gender_feedback_distribution <- online_foods_clean %>%
+  group_by(Gender, Feedback) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  group_by(Gender) %>%
+  mutate(Total = sum(Count),  # Calculate the total feedback count per gender
+         Percent = (Count / Total) * 100)  # Calculate percentage within each gender group
+
+# Visualizing gender feedback distribution with percentages
+ggplot(gender_feedback_distribution, aes(x = Gender, y = Count, fill = Feedback)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = sprintf("%.1f%%", Percent)), vjust = -0.5, position = position_dodge(width = 0.9)) +
+  labs(title = "Feedback Distribution by Gender", x = "Gender", y = "Count")
+
+
+```
+
+
+## Socioeconomic Impact 
+
+### PUT ANALYSIS HERE
+
+```{r}
+occupation_income_feedback <- online_foods_clean %>%
+  group_by(Occupation, `Monthly Income`, Feedback) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  mutate(Total = sum(Count), Percent = (Count / Total) * 100) %>%
+  ungroup() %>%
+  arrange(desc(Percent))
+
+# Visualizing feedback by occupation and income level
+ggplot(occupation_income_feedback, aes(x = Occupation, y = Percent, fill = Feedback)) +
+  geom_bar(stat = "identity", position = position_fill(reverse = TRUE)) +
+  facet_wrap(~`Monthly Income`, scales = "free_x") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Feedback Distribution by Occupation and Income Level", x = "Occupation", y = "Percentage of Feedback")
+
+education_feedback <- online_foods_clean %>%
+  group_by(`Educational Qualifications`, Feedback) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  mutate(Total = sum(Count), Percent = (Count / Total) * 100) %>%
+  ungroup()
+
+# Visualizing the correlation between education and feedback
+ggplot(education_feedback, aes(x = `Educational Qualifications`, y = Percent, size = Count, color = Feedback)) +
+  geom_point(alpha = 0.6) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Feedback Distribution by Educational Qualifications", x = "Educational Level", y = "Percentage of Feedback", size = "Count of Feedback")
+```
+
+## Geographical Trends
+
+
+### PUT ANALYSIS HERE
+
+```{r}
+location_summary <- online_foods_clean %>%
+  group_by(latitude, longitude) %>%
+  summarise(
+    Total_Orders = n(),
+    Positive_Feedback = sum(Feedback == "Positive", na.rm = TRUE),
+    Percent_Positive = (Positive_Feedback / Total_Orders) * 100,
+    .groups = 'drop'
+  )
+
+ggplot(location_summary, aes(x = longitude, y = latitude, size = Total_Orders, color = Percent_Positive)) +
+  geom_point(alpha = 0.6) +
+  scale_color_gradient(low = "red", high = "blue") +
+  labs(
+    title = "Usage Patterns and Feedback by Location",
+    x = "Longitude",
+    y = "Latitude",
+    color = "Percent Positive Feedback",
+    size = "Total Orders"
+  ) +
+  theme_minimal()
+
+leaflet(data = location_summary) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    lng = ~longitude, lat = ~latitude,
+    radius = ~sqrt(Total_Orders) * 2,  
+    color = ~colorNumeric(palette = "RdBu", domain = Percent_Positive)(Percent_Positive),
+    popup = ~paste("Total Orders:", Total_Orders, "<br>",
+                   "Positive Feedback:", Positive_Feedback, "<br>",
+                   "Percent Positive:", sprintf("%.2f%%", Percent_Positive))
+  ) %>%
+  addLegend("bottomright", 
+            pal = colorNumeric(palette = "RdBu", domain = NULL),
+            values = ~Percent_Positive,
+            title = "Percent Positive Feedback",
+            opacity = 1)
+```
+
+## Family Dynamics
+
+
+### PUT ANALYSIS HERE
+```{r}
+family_size_summary <- online_foods_clean %>%
+  group_by(`Family size`) %>%
+  summarise(
+    Total_Orders = n(),  
+    Positive_Feedback = sum(Feedback == "Positive", na.rm = TRUE),  
+    Negative_Feedback = sum(Feedback == "Negative", na.rm = TRUE),  
+    Percent_Positive = (Positive_Feedback / Total_Orders) * 100,  
+    Percent_Negative = (Negative_Feedback / Total_Orders) * 100,  
+    .groups = 'drop'
+  )
+
+family_size_long <- family_size_summary %>%
+  pivot_longer(cols = c("Percent_Positive", "Percent_Negative"), 
+               names_to = "Feedback_Type", 
+               values_to = "Percentage")
+
+
+ggplot(family_size_long, aes(x = `Family size`, y = Percentage, fill = Feedback_Type)) +
+  geom_col(position = "dodge", width = 0.7) +
+  facet_wrap(~Feedback_Type, scales = "free_y") +
+  scale_fill_manual(values = c("Percent_Positive" = "blue", "Percent_Negative" = "red")) +
+  labs(title = "Feedback Percentage by Family Size",
+       x = "Family Size",
+       y = "Feedback Percentage (%)") +
+  theme_minimal()
+
+```
+
