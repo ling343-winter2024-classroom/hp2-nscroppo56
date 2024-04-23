@@ -39,7 +39,7 @@ The modern convenience of online food services has become a significant aspect o
 Topics I will be exploring:
 
 1) Demographic Influence:
-How do age, gender, and marital status influence the feedback and usage frequency of online food services?
+How do age and gender influence the feedback and usage frequency of online food services?
 Is there a noticeable difference in the way different demographic groups perceive the quality of service?
 
 2) Socioeconomic Impact:
@@ -140,9 +140,15 @@ age_stats |> gt()
 
 ```
 
-### PUT ANALYSIS HERE
+The first thing I calculated to begin my analysis was create a dataframe that looks at the ages of all the participants. We see the results above. Then what I did was analyze the feedback by age to see if that had an effect. We see that younger people did respond with more positive feedback than people older than the average age in this study.
+
+
+Then I was curious to see how gender affected feedback so I created a separate dataframe to analyze this. Looking at the graph we can see that similar percent of each gender voted positively and negatively so this does not tell us too much.
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
 online_foods_clean <- online_foods_clean %>%
   mutate(Age_Category = if_else(Age > age_stats$Mean_Age, "Above Average", "Below Average"))
 
@@ -151,9 +157,9 @@ age_feedback <- online_foods_clean %>%
   summarise(Count = n(), .groups = 'drop') %>%
   group_by(Age_Category) %>%
   mutate(Total = sum(Count),  
-         Percent = (Count / Total) * 100)  # Percentage calculated within each Age_Category
+         Percent = (Count / Total) * 100)  
 
-# Visualizing the feedback by Age Category with percentage annotations
+# Visualizing the feedback by Age Category with percentage 
 ggplot(age_feedback, aes(x = Age_Category, y = Count, fill = Feedback)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   geom_text(aes(label = sprintf("%.1f%%", Percent)), vjust = -0.5, position = position_dodge(width = 0.9)) +
@@ -179,9 +185,15 @@ ggplot(gender_feedback_distribution, aes(x = Gender, y = Count, fill = Feedback)
 
 ## Socioeconomic Impact 
 
-### PUT ANALYSIS HERE
+The next set of questions I wanted to investigate related to the socioeconomic levels of the participants in the data. I started with splitting up the various income levels of each of the participants into the 5 segments it was already broken up with. Within this, I also split each income level by occupation to observe any deeper effects. We can see that employees with an income level below $10,000 reported the highest percent of negative feedback. Actually, that income level group reported the most collective negative feedback. Interestingly, students at three different income levels had 0% negative feedback to give. Assumptions could be made that the added fees of using online food ordering apps could be a cause of people at a lower income level rating the platform more negatively.
+
+The next graph was just to briefly look at how weighted the different educational levels were responding to the feedback. We see that graduate and post-graduate participants made up most of the data.
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
 occupation_income_feedback <- online_foods_clean %>%
   group_by(Occupation, `Monthly Income`, Feedback) %>%
   summarise(Count = n(), .groups = 'drop') %>%
@@ -212,9 +224,13 @@ ggplot(education_feedback, aes(x = `Educational Qualifications`, y = Percent, si
 ## Geographical Trends
 
 
-### PUT ANALYSIS HERE
+Next I looked at how geographical tends influenced feedback. It can be seen that this study was mostly conducted in the city of Bengaluru, India. This was interesting to me since it was never mentioned on the website where this study was conducted. Looking a little deeper, we see a lot of positive feedback was located in the heart of the city and most of the negative feedback was on the outskirts. It can be assumed this is because maybe the houses and restaurateurs are more accessible and easier to locate and the ones on the outskirts could be difficult to navigate. 
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
 location_summary <- online_foods_clean %>%
   group_by(latitude, longitude) %>%
   summarise(
@@ -256,8 +272,12 @@ leaflet(data = location_summary) %>%
 ## Family Dynamics
 
 
-### PUT ANALYSIS HERE
+Lastly, I aimed to see how family dynamics influenced the feedback in this data. Starting with positive feedback, there is not really a visible trend to be extracted here but the highest percent was a family size of 4. Shifting to the negative feedback, the lowest percent was actually the family size of 4. The highest in this category was a family size of 1. This is interesting to me and something I would of liked to further analyze with more data.
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
 family_size_summary <- online_foods_clean %>%
   group_by(`Family size`) %>%
   summarise(
@@ -285,4 +305,6 @@ ggplot(family_size_long, aes(x = `Family size`, y = Percentage, fill = Feedback_
   theme_minimal()
 
 ```
+## Conclusion 
 
+In conclusion, this wraps up my data analysis on this csv file. I learned a lot while doing this analysis and would love to see a study like this conducted in my city. The most enlightening analysis was the income level and occupation analysis and the geographical map was really fun to code. 
